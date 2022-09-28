@@ -59,6 +59,9 @@ Vagrant.configure("2") do |config|
      db.vm.network "private_network", ip: db_ip
 
      #copy any needed files out to the vm
+	 db.vm.provision "file",
+		source: "./mysqld.cnf",
+		destination: "/tmp/mysqld.cnf"
 
      #set up a provision block to install and configure the DB
      db.vm.provision "shell", inline: <<-SHELL
@@ -69,6 +72,10 @@ Vagrant.configure("2") do |config|
 		debconf-set-selections <<< "mysql-server mysql-server/root_password_again password #{sql_pwd}"
 		
 		apt install -y mysql-server
+		
+		mysql --user="root" --password="#{sql_pwd}" --execute="CREATE USER 'root'@'#{web_ip}' IDENTIFIED BY '#{sql_pwd}';GRANT ALL ON *.* TO 'root'@'#{web_ip}';FLUSH PRIVILEGES;"
+		mv /tmp/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
+		systemctl restart mysql
      SHELL
   
     end  #endof the db block
